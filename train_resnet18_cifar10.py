@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torchvision
 import torchvision.transforms as transforms
-from resnet18k import make_resnet18k
+from resnet18k import make_normalized_resnet18k
 from tqdm import tqdm
 
 device = torch.device('cuda')
@@ -22,26 +22,6 @@ transform_train = transforms.Compose([
 transform_test = transforms.Compose([
     transforms.ToTensor(),
 ])
-
-class Normalizer(nn.Module):
-    def __init__(self, mean, std):
-        super(Normalizer, self).__init__()
-        self.mean = torch.tensor(mean).view(1, -1, 1, 1)
-        self.std = torch.tensor(std).view(1, -1, 1, 1)
-
-    def forward(self, x):
-        return (x - self.mean) / self.std
-
-class NormalizedResNet18(nn.Module):
-    def __init__(self, norm, k=64, num_classes=10):
-        super(NormalizedResNet18, self).__init__()
-        self.model = make_resnet18k(k=k, num_classes=num_classes)
-        self.normalizer = norm
-
-    def forward(self, x):
-        x = self.normalizer(x)
-        x = self.model(x)
-        return x
 
 # CIFAR-10 dataset
 train_dataset = torchvision.datasets.CIFAR10(root='/fastdata/cifar10/',
@@ -65,7 +45,7 @@ test_loader = torch.utils.data.DataLoader(dataset=test_dataset,
                                           shuffle=False)
 
 
-model = make_resnet18k(k=64, num_classes=10).to(device)
+model = make_normalized_resnet18k(k=64, num_classes=10).to(device)
 model = torch.nn.DataParallel(model)
 
 # Compile the model
@@ -116,9 +96,9 @@ for epoch in range(num_epochs):
     if epoch % 5 == 0:
         val(epoch)
         # Save the model checkpoint
-        torch.save(model.state_dict(), f'resnet18_cifar10_{epoch}.pt')
+        torch.save(model.module.state_dict(), f'resnet18_cifar10_{epoch}.pt')
 
 val('final')
 # Save final model
-torch.save(model.state_dict(), 'resnet18_cifar10.pt')
+torch.save(model.module.state_dict(), 'resnet18_cifar10.pt')
 
