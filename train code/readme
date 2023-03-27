@@ -1,0 +1,1 @@
+training code for clean lr = 0.1, epoch = 100, lr decay at [60,80]. and fine tune based on clean 100 epoch model, with lr = 0.01, epoch = 50, no lr decay.
